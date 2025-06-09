@@ -1,0 +1,44 @@
+import SimpleITK as sitk
+import numpy as np
+
+# Load the masks
+abm_nnUnet = sitk.ReadImage("ABM-nnUnet.nii.gz")   # Predicted ABM from nnU-Net
+bm_whole = sitk.ReadImage("BM.nii.gz")             # Manually contoured entire bone marrow
+abm_gt = sitk.ReadImage("ABM-GT.nii.gz")           # Ground truth ABM from PET
+
+# Ensure spatial consistency
+assert abm_nnUnet.GetSize() == bm_whole.GetSize() == abm_gt.GetSize(), "Error: Size mismatch"
+assert abm_nnUnet.GetSpacing() == bm_whole.GetSpacing() == abm_gt.GetSpacing(), "Error: Spacing mismatch"
+assert abm_nnUnet.GetOrigin() == bm_whole.GetOrigin() == abm_gt.GetOrigin(), "Error: Origin mismatch"
+
+# Boolean intersection between ABM-nnUnet and BM
+abm_nnUnet_bin = abm_nnUnet > 0
+bm_bin = bm_whole > 0
+intersection_mask = sitk.And(abm_nnUnet_bin, bm_bin)
+
+# Save the intersection result
+sitk.WriteImage(intersection_mask, "ABM-nnUnet_AND_BM.nii.gz")
+print("Boolean intersection saved as 'ABM-nnUnet_AND_BM.nii.gz'")
+
+# Prepare for metric calculations
+intersection_array = sitk.GetArrayFromImage(intersection_mask) > 0
+abm_gt_array = sitk.GetArrayFromImage(abm_gt) > 0
+
+# Compute Dice Similarity Coefficient
+intersection_volume = np.logical_and(intersection_array, abm_gt_array).sum()
+volume_sum = intersection_array.sum() + abm_gt_array.sum()
+dice = (2.0 * intersection_volume) / (volume_sum + 1e-8)
+print(f"Dice Similarity Coefficient with ABM-GT: {dice:.4f}")
+
+# Compute Hausdorff Distance (95th percentile)
+# Convert masks to binary images
+intersection_bin = sitk.GetImageFromArray(intersection_array.astype(np.uint8))
+intersection_bin.CopyInformation(abm_gt)
+abm_gt_bin = sitk.GetImageFromArray(abm_gt_array.astype(np.uint8))
+abm_gt_bin.CopyInformation(abm_gt)
+
+# Use the HausdorffDistanceImageFilter
+hausdorff_filter = sitk.HausdorffDistanceImageFilter()
+hausdorff_filter.Execute(intersection_bin, abm_gt_bin)
+hd95 = hausdorff_filter.GetHausdorffDistance()
+print(f"Hausdorff Distance (95th percentile) with ABM-GT: {hd95:.2f} mm")
