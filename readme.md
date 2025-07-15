@@ -82,6 +82,10 @@ Dice Similarity Coefficient (DSC): Measures volumetric overlap between the hybri
 
 HD95: Robust version of the Hausdorff Distance that reflects surface agreement and spatial outliers.
 
+<img width="4000" height="2250" alt="ABM-2" src="https://github.com/user-attachments/assets/b61c5a90-4380-4e95-ac54-b6c537e5449e" />
+<img width="4000" height="2250" alt="ABM-1" src="https://github.com/user-attachments/assets/2714f64b-5ec1-4160-a6f7-00bdca9bc82c" />
+
+
 ## Use Cases
 
 This hybrid pipeline is ideal for:
